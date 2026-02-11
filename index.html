@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>WebGIS Leaflet - 3 Mapas de Fundo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Leaflet CSS -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+      }
+
+      #map {
+        width: 100%;
+        height: 100vh;
+      }
+
+      .leaflet-control-layers-expanded {
+        font-size: 14px;
+      }
+
+      /* Estilo da tabela de atributos no popup */
+      .attr-table {
+        border-collapse: collapse;
+        font-size: 11px;
+      }
+
+      .attr-table th,
+      .attr-table td {
+        border: 1px solid #ccc;
+        padding: 2px 4px;
+      }
+
+      .attr-table th {
+        background-color: #f2f2f2;
+        font-weight: bold;
+        text-align: left;
+      }
+
+      .leaflet-popup-content {
+        max-height: 220px;
+        overflow: auto;
+      }
+
+      /* Legenda */
+      .legend-panel {
+        position: absolute;
+        bottom: 40px;
+        left: 10px;
+        background: #ffffff;
+        padding: 8px 10px;
+        border-radius: 4px;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+        font-size: 11px;
+        line-height: 1.3;
+        max-height: 260px;
+        overflow: auto;
+        z-index: 1000;
+      }
+
+      .legend-panel.hidden {
+        display: none;
+      }
+
+      .legend-title {
+        font-weight: bold;
+        margin-bottom: 4px;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 3px;
+      }
+
+      .legend-symbol {
+        width: 14px;
+        height: 10px;
+        margin-right: 6px;
+        border: 1px solid #555;
+      }
+
+      .legend-line {
+        width: 22px;
+        height: 0;
+        margin-right: 6px;
+        border-top: 3px solid #ff0000;
+      }
+
+      .legend-point {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #000000;
+        margin-right: 6px;
+        border: 1px solid #ffffff;
+      }
+
+      .legend-toggle-btn {
+        background: #ffffff;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 4px 8px;
+        font-size: 12px;
+        cursor: pointer;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+      }
+
+      .legend-toggle-btn:hover {
+        background: #f2f2f2;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+
+    <!-- Legenda (inicialmente escondida) -->
+    <div id="legend" class="legend-panel hidden">
+      <div class="legend-title">Legenda</div>
+
+      <div class="legend-item">
+        <span class="legend-point"></span>
+        <span>Localidades EFC</span>
+      </div>
+
+      <div class="legend-item">
+        <span class="legend-line"></span>
+        <span>Estrada de Ferro Carajás</span>
+      </div>
+
+      <div class="legend-item">
+        <span
+          class="legend-symbol"
+          style="background: rgba(0, 31, 63, 0.4); border-color: #001f3f"
+        ></span>
+        <span>SIGEF EFC</span>
+      </div>
+
+      <div class="legend-item">
+        <span
+          class="legend-symbol"
+          style="background: rgba(255, 153, 0, 0.5); border-color: #ff7f00"
+        ></span>
+        <span>Assentamentos EFC</span>
+      </div>
+
+      <div class="legend-item">
+        <span
+          class="legend-symbol"
+          style="background: #fff59d; border-color: #ffbf00"
+        ></span>
+        <span>Terras Indígenas EFC</span>
+      </div>
+
+      <div class="legend-item">
+        <span
+          class="legend-symbol"
+          style="background: #41ab5d; border-color: #005824"
+        ></span>
+        <span>UC EFC - Grupo PI</span>
+      </div>
+
+      <div class="legend-item">
+        <span
+          class="legend-symbol"
+          style="background: #a1d99b; border-color: #238b45"
+        ></span>
+        <span>UC EFC - Grupo US</span>
+      </div>
+
+      <div class="legend-item">
+        <span class="legend-symbol" style="background: #ffffff"></span>
+        <span>Municípios EFC (contorno preto)</span>
+      </div>
+
+      <div class="legend-item">
+        <span
+          class="legend-symbol"
+          style="background: #d6d6d6; border-color: #666666"
+        ></span>
+        <span>UFs - Região Norte</span>
+      </div>
+      <div class="legend-item">
+        <span
+          class="legend-symbol"
+          style="background: #c0c0c0; border-color: #666666"
+        ></span>
+        <span>UFs - Região Nordeste</span>
+      </div>
+      <div class="legend-item">
+        <span
+          class="legend-symbol"
+          style="background: #a8a8a8; border-color: #666666"
+        ></span>
+        <span>UFs - Centro-Oeste</span>
+      </div>
+      <div class="legend-item">
+        <span
+          class="legend-symbol"
+          style="background: #909090; border-color: #666666"
+        ></span>
+        <span>UFs - Sudeste</span>
+      </div>
+      <div class="legend-item">
+        <span
+          class="legend-symbol"
+          style="background: #707070; border-color: #666666"
+        ></span>
+        <span>UFs - Sul</span>
+      </div>
+    </div>
+
+    <!-- Proj4JS (para reprojetar a linha da EFC de EPSG:31983 para WGS84) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.2/proj4.js"></script>
+
+    <!-- Leaflet JS -->
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+
+    <script>
+      // Coordenadas iniciais (por exemplo, centro aproximado do Brasil)
+      const initialCenter = [-15.8, -47.9];
+      const initialZoom = 4;
+
+      // Criação do mapa
+      const map = L.map("map", {
+        center: initialCenter,
+        zoom: initialZoom,
+      });
+
+      // --- Panes para controlar a ordem das camadas ---
+      // (do fundo para frente)
+      map.createPane("pane-ufs");            // UFs (mais ao fundo)
+      map.getPane("pane-ufs").style.zIndex = 410;
+
+      map.createPane("pane-municipios");     // Municípios EFC
+      map.getPane("pane-municipios").style.zIndex = 420;
+
+      map.createPane("pane-uc");             // UC_EFC
+      map.getPane("pane-uc").style.zIndex = 430;
+
+      map.createPane("pane-ti");             // TI_EFC
+      map.getPane("pane-ti").style.zIndex = 440;
+
+      map.createPane("pane-assentamentos");  // Assentamentos_EFC
+      map.getPane("pane-assentamentos").style.zIndex = 450;
+
+      map.createPane("pane-sigef");          // SIGEF_EFC
+      map.getPane("pane-sigef").style.zIndex = 460;
+
+      map.createPane("pane-efc-linha");      // Estrada de Ferro Carajás
+      map.getPane("pane-efc-linha").style.zIndex = 470;
+
+      map.createPane("pane-localidades");    // Localidades (topo)
+      map.getPane("pane-localidades").style.zIndex = 480;
+
+      // --- Mapas de fundo (basemaps) ---
+
+      // 1) OpenStreetMap Padrão
+      const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      });
+
+      // 2) OpenTopoMap
+      const openTopo = L.tileLayer(
+        "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+        {
+          maxZoom: 17,
+          attribution:
+            'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="https://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)',
+        }
+      );
+
+      // 3) CartoDB Positron (fundo claro)
+      const cartoPositron = L.tileLayer(
+        "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+        {
+          maxZoom: 19,
+          attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        }
+      );
+
+      // Adiciona um dos basemaps como padrão ao carregar a página
+      osm.addTo(map);
+
+      // --- Função para montar popup com tabela de atributos ---
+      function criarPopupAtributos(props = {}) {
+        const entries = Object.entries(props);
+        if (!entries.length) {
+          return "<em>Sem atributos</em>";
+        }
+        const linhas = entries
+          .map(
+            ([chave, valor]) =>
+              `<tr><th>${chave}</th><td>${valor ?? ""}</td></tr>`
+          )
+          .join("");
+        return `<table class="attr-table"><tbody>${linhas}</tbody></table>`;
+      }
+
+      // --- Função auxiliar para carregar GeoJSON ---
+      function carregarGeoJSON(caminho, opcoes = {}, aoCarregar = null) {
+        const onEachUser = opcoes.onEachFeature;
+
+        // Garante que todo recurso tenha popup com atributos completos
+        opcoes.onEachFeature = (feature, layer) => {
+          if (typeof onEachUser === "function") {
+            onEachUser(feature, layer);
+          }
+          if (feature && feature.properties) {
+            layer.bindPopup(criarPopupAtributos(feature.properties));
+          }
+        };
+
+        const camada = L.geoJSON(null, opcoes);
+
+        fetch(caminho)
+          .then((res) => res.json())
+          .then((dados) => {
+            camada.addData(dados);
+            if (typeof aoCarregar === "function") {
+              aoCarregar(camada, dados);
+            }
+          })
+          .catch((erro) => {
+            console.error("Erro ao carregar GeoJSON:", caminho, erro);
+          });
+
+        return camada;
+      }
+
+      // --- Camadas GeoJSON ---
+
+      // 1) Municípios da EFC (polígonos) - usado para centralizar o mapa
+      const efcMunicipios = carregarGeoJSON(
+        "QGIS_Desk/EFC_municipios.geojson",
+        {
+          pane: "pane-municipios",
+          style: {
+            color: "#000000",   // contorno preto
+            weight: 1,
+            fillOpacity: 0,     // preenchimento transparente
+          },
+        },
+        (camada) => {
+          // Centraliza o mapa para enquadrar os municípios da EFC
+          const bounds = camada.getBounds();
+          if (bounds.isValid()) {
+            map.fitBounds(bounds);
+          }
+        }
+      ).addTo(map);
+
+      // 2) Estrada de Ferro Carajás (linha)
+      //    OBS: este arquivo está em EPSG:31983 (SIRGAS 2000 / UTM 23S),
+      //    então precisamos reprojetar para WGS84 (lat/lng) antes de adicionar ao mapa.
+      const efcLinha = L.geoJSON(null, {
+        pane: "pane-efc-linha",
+        style: {
+          color: "#ff0000",
+          weight: 3, // um pouco mais fina
+          opacity: 1,
+        },
+        onEachFeature: (feature, layer) => {
+          if (feature && feature.properties) {
+            layer.bindPopup(criarPopupAtributos(feature.properties));
+          }
+        },
+      }).addTo(map);
+
+      fetch("QGIS_Desk/Estrada_de_Ferro_Carajas.geojson")
+        .then((res) => res.json())
+        .then((dados) => {
+          try {
+            // Só reprojeta se o CRS for EPSG:31983
+            const nomeCRS =
+              dados?.crs?.properties?.name ||
+              dados?.crs?.properties?.code ||
+              "";
+
+            if (nomeCRS.includes("EPSG::31983")) {
+              const proj31983 =
+                "+proj=utm +zone=23 +south +datum=SIRGAS2000 +units=m +no_defs";
+              const proj4326 =
+                "+proj=longlat +datum=WGS84 +no_defs";
+
+              dados.features.forEach((feat) => {
+                if (
+                  feat.geometry &&
+                  feat.geometry.type === "MultiLineString"
+                ) {
+                  feat.geometry.coordinates =
+                    feat.geometry.coordinates.map((linha) =>
+                      linha.map(([x, y]) => {
+                        const [lon, lat] = proj4(
+                          proj31983,
+                          proj4326,
+                          [x, y]
+                        );
+                        return [lon, lat];
+                      })
+                    );
+                }
+              });
+            }
+
+            efcLinha.addData(dados);
+            efcLinha.bringToFront();
+          } catch (e) {
+            console.error(
+              "Erro ao reprojetar/adicionar Estrada de Ferro Carajás:",
+              e
+            );
+          }
+        })
+        .catch((erro) => {
+          console.error(
+            "Erro ao carregar GeoJSON da Estrada de Ferro Carajás:",
+            erro
+          );
+        });
+
+      // 3) Assentamentos (pontos ou polígonos)
+      const assentamentosEfc = carregarGeoJSON(
+        "QGIS_Desk/Assentamentos_EFC.geojson",
+        {
+          pane: "pane-assentamentos",
+          pointToLayer: (feature, latlng) =>
+            L.circleMarker(latlng, {
+              radius: 5,
+              color: "#ff7f00",
+              weight: 1,
+              fillColor: "#ff9900",
+              fillOpacity: 0.7,
+            }),
+          style: {
+            color: "#ff7f00",
+            weight: 1,
+            fillColor: "#ff9900",
+            fillOpacity: 0.5,
+          },
+        }
+      ).addTo(map);
+
+      // 4) Localidades (pontos)
+      const localidadesEfc = carregarGeoJSON(
+        "QGIS_Desk/Localidades_EFC.geojson",
+        {
+          pane: "pane-localidades",
+          pointToLayer: (feature, latlng) =>
+            L.circleMarker(latlng, {
+              radius: 4,
+              color: "#000000",
+              weight: 1,
+              fillColor: "#ffffff",
+              fillOpacity: 0.9,
+            }),
+          onEachFeature: (feature, layer) => {
+            const props = feature.properties || {};
+            const nomeMun = props.NM_MUNICIP || props.nome || "";
+            if (nomeMun) {
+              // Mostra o nome só ao passar o mouse,
+              // para não poluir a visualização.
+              layer.bindTooltip(nomeMun, {
+                permanent: false,
+                direction: "top",
+                sticky: true,
+              });
+            }
+          },
+        }
+      ).addTo(map);
+
+      // 5) SIGEF (provavelmente polígonos)
+      const sigefEfc = carregarGeoJSON("QGIS_Desk/SIGEF_EFC.geojson", {
+        pane: "pane-sigef",
+        style: {
+          color: "#001f3f",      // azul marinho
+          weight: 1,
+          fillColor: "#001f3f",
+          fillOpacity: 0.25,     // transparência
+        },
+      }).addTo(map);
+
+      // 6) Terras Indígenas
+      const tiEfc = carregarGeoJSON("QGIS_Desk/TI_EFC.geojson", {
+        pane: "pane-ti",
+        style: {
+          color: "#ffbf00",      // contorno amarelo
+          weight: 1,
+          fillColor: "#fff59d",  // amarelo claro
+          fillOpacity: 0.5,
+        },
+      }).addTo(map);
+
+      // 7) Unidades de Conservação
+      const ucEfc = carregarGeoJSON("QGIS_Desk/UC_EFC.geojson", {
+        pane: "pane-uc",
+        style: (feature) => {
+          const grupo = feature?.properties?.GRUPO4 || "";
+          // PI = verde escuro, US = verde claro
+          if (grupo === "PI") {
+            return {
+              color: "#005824",
+              weight: 1,
+              fillColor: "#41ab5d",
+              fillOpacity: 0.5,
+            };
+          }
+          if (grupo === "US") {
+            return {
+              color: "#238b45",
+              weight: 1,
+              fillColor: "#a1d99b",
+              fillOpacity: 0.5,
+            };
+          }
+          // padrão
+          return {
+            color: "#006d2c",
+            weight: 1,
+            fillColor: "#74c476",
+            fillOpacity: 0.5,
+          };
+        },
+      }).addTo(map);
+
+      // 8) UFs (limites estaduais)
+      const ufs = carregarGeoJSON("QGIS_Desk/UFs.geojson", {
+        pane: "pane-ufs",
+        style: (feature) => {
+          const regiao = feature?.properties?.REGIAO || "";
+          // Categorização simples em tons de cinza por região
+          let fillColor = "#e0e0e0";
+          if (regiao === "Norte") fillColor = "#d6d6d6";
+          else if (regiao === "Nordeste") fillColor = "#c0c0c0";
+          else if (regiao === "Centro-Oeste") fillColor = "#a8a8a8";
+          else if (regiao === "Sudeste") fillColor = "#909090";
+          else if (regiao === "Sul") fillColor = "#707070";
+
+          return {
+            color: "#666666",
+            weight: 0.8,
+            fillColor,
+            fillOpacity: 0.9,
+          };
+        },
+      }).addTo(map);
+
+      // --- Controle de camadas (basemaps + sobreposições) ---
+      const baseMaps = {
+        OpenStreetMap: osm,
+        OpenTopoMap: openTopo,
+        "CartoDB Positron": cartoPositron,
+      };
+
+      // Ordem no menu de camadas (de cima para baixo)
+      const overlayMaps = {
+        "Localidades EFC": localidadesEfc,
+        "Estrada de Ferro Carajás": efcLinha,
+        "SIGEF EFC": sigefEfc,
+        "Assentamentos EFC": assentamentosEfc,
+        "Terras Indígenas EFC": tiEfc,
+        "UC EFC": ucEfc,
+        "Municípios EFC": efcMunicipios,
+        "UFs": ufs,
+      };
+
+      L.control
+        .layers(baseMaps, overlayMaps, {
+          collapsed: false,
+          position: "topright",
+        })
+        .addTo(map);
+
+      // --- Botão para abrir/fechar legenda ---
+      const legendElement = document.getElementById("legend");
+
+      const LegendToggleControl = L.Control.extend({
+        onAdd: function () {
+          const btn = L.DomUtil.create(
+            "button",
+            "legend-toggle-btn"
+          );
+          btn.type = "button";
+          btn.innerHTML = "Legenda";
+
+          // Evita que o clique no botão mexa no mapa (zoom/arrastar)
+          L.DomEvent.disableClickPropagation(btn);
+          L.DomEvent.on(btn, "click", function () {
+            legendElement.classList.toggle("hidden");
+          });
+
+          return btn;
+        },
+
+        onRemove: function () {},
+      });
+
+      map.addControl(new LegendToggleControl({ position: "bottomleft" }));
+    </script>
+  </body>
+</html>
+
