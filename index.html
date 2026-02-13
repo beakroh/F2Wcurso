@@ -24,10 +24,96 @@
       #map {
         width: 100%;
         height: 100vh;
+        background: #e8e8e8;
+      }
+
+      /* Controle de camadas - compacto, com sombra */
+      .leaflet-control-layers {
+        border: none !important;
+        border-radius: 8px;
+        overflow: visible;
+        margin: 8px 8px 0 0 !important;
+      }
+
+      .leaflet-control-layers-toggle {
+        width: auto !important;
+        min-width: 100px !important;
+        height: 38px !important;
+        padding: 0 12px 0 40px !important;
+        background-color: #fff !important;
+        background-position: 12px center !important;
+        background-repeat: no-repeat !important;
+        background-size: 22px 22px !important;
+        border-radius: 8px;
+        font-size: 13px !important;
+        font-weight: 500 !important;
+        color: #1e293b !important;
+        text-decoration: none !important;
+        display: flex !important;
+        align-items: center !important;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+        transition: background-color 0.2s, box-shadow 0.2s;
+      }
+
+      .leaflet-control-layers-toggle::after {
+        content: "Camadas";
+      }
+
+      .leaflet-control-layers-toggle:hover {
+        background-color: #f5f5f5 !important;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
       }
 
       .leaflet-control-layers-expanded {
-        font-size: 14px;
+        background: #fff !important;
+        padding: 12px 14px !important;
+        font-size: 13px;
+        border-radius: 8px;
+        min-width: 200px;
+        max-height: 70vh;
+        overflow-y: auto;
+      }
+
+      .leaflet-control-layers-base label,
+      .leaflet-control-layers-overlays label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 0;
+        cursor: pointer;
+        font-weight: 500;
+      }
+
+      .leaflet-control-layers-selector {
+        margin: 0 !important;
+        accent-color: #2563eb;
+      }
+
+      .leaflet-control-layers-separator {
+        margin: 8px 0 !important;
+        border-top: 1px solid #e5e7eb;
+      }
+
+      /* Controles de zoom - consistência visual */
+      .leaflet-control-zoom {
+        border: none !important;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15) !important;
+        border-radius: 8px !important;
+        overflow: hidden;
+      }
+
+      .leaflet-control-zoom a {
+        width: 36px !important;
+        height: 36px !important;
+        line-height: 36px !important;
+        font-size: 18px !important;
+        color: #374151 !important;
+        transition: background 0.2s;
+      }
+
+      .leaflet-control-zoom a:hover {
+        background: #f5f5f5 !important;
+        color: #111 !important;
       }
 
       /* Estilo da tabela de atributos no popup */
@@ -53,18 +139,18 @@
         overflow: auto;
       }
 
-      /* Legenda */
+      /* Legenda - design alinhado aos controles */
       .legend-panel {
         position: absolute;
         bottom: 40px;
         left: 10px;
         background: #ffffff;
-        padding: 8px 10px;
-        border-radius: 4px;
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
-        font-size: 11px;
-        line-height: 1.3;
-        max-height: 260px;
+        padding: 12px 14px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+        font-size: 12px;
+        line-height: 1.4;
+        max-height: 280px;
         overflow: auto;
         z-index: 1000;
       }
@@ -108,17 +194,39 @@
       }
 
       .legend-toggle-btn {
-        background: #ffffff;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        padding: 4px 8px;
-        font-size: 12px;
+        background: #ffffff !important;
+        border: none !important;
+        border-radius: 8px;
+        padding: 8px 14px;
+        font-size: 13px;
+        font-weight: 500;
         cursor: pointer;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+        transition: background 0.2s, box-shadow 0.2s;
       }
 
       .legend-toggle-btn:hover {
-        background: #f2f2f2;
+        background: #f5f5f5 !important;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+      }
+
+      /* Etiquetas dos municípios - ocultas quando zoom baixo */
+      .municipio-label {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        font-size: 11px;
+        font-weight: 600;
+        color: #1f2937;
+        text-shadow: 1px 1px 1px #fff, -1px -1px 1px #fff,
+                     1px -1px 1px #fff, -1px 1px 1px #fff;
+        white-space: nowrap;
+        transition: opacity 0.25s ease;
+      }
+
+      #map.zoom-baixo .municipio-label {
+        opacity: 0 !important;
+        pointer-events: none !important;
       }
     </style>
   </head>
@@ -297,8 +405,9 @@
         }
       );
 
-      // Adiciona um dos basemaps como padrão ao carregar a página
-      osm.addTo(map);
+      // Camada vazia = "sem mapa de fundo" (permite retirar o basemap após adicionar)
+      const semFundo = L.layerGroup();
+      semFundo.addTo(map);
 
       // --- Função para montar popup com tabela de atributos ---
       function criarPopupAtributos(props = {}) {
@@ -357,6 +466,16 @@
             color: "#000000",   // contorno preto
             weight: 1,
             fillOpacity: 0,     // preenchimento transparente
+          },
+          onEachFeature: (feature, layer) => {
+            const nome = feature?.properties?.nome || "";
+            if (nome) {
+              layer.bindTooltip(nome, {
+                permanent: true,
+                direction: "center",
+                className: "municipio-label",
+              });
+            }
           },
         },
         (camada) => {
@@ -459,7 +578,7 @@
         }
       ).addTo(map);
 
-      // 4) Localidades (pontos)
+      // 4) Localidades (pontos) - sem etiquetas (os nomes aparecem nos municípios)
       const localidadesEfc = carregarGeoJSON(
         "QGIS_Desk/Localidades_EFC.geojson",
         {
@@ -472,19 +591,6 @@
               fillColor: "#ffffff",
               fillOpacity: 0.9,
             }),
-          onEachFeature: (feature, layer) => {
-            const props = feature.properties || {};
-            const nomeMun = props.NM_MUNICIP || props.nome || "";
-            if (nomeMun) {
-              // Mostra o nome só ao passar o mouse,
-              // para não poluir a visualização.
-              layer.bindTooltip(nomeMun, {
-                permanent: false,
-                direction: "top",
-                sticky: true,
-              });
-            }
-          },
         }
       ).addTo(map);
 
@@ -566,6 +672,7 @@
 
       // --- Controle de camadas (basemaps + sobreposições) ---
       const baseMaps = {
+        "Sem mapa de fundo": semFundo,
         OpenStreetMap: osm,
         OpenTopoMap: openTopo,
         "CartoDB Positron": cartoPositron,
@@ -585,10 +692,26 @@
 
       L.control
         .layers(baseMaps, overlayMaps, {
-          collapsed: false,
+          collapsed: true,
           position: "topright",
         })
         .addTo(map);
+
+      // --- Etiquetas dos municípios: só mostram com zoom suficiente ---
+      const ZOOM_LABELS = 9;
+      const mapContainer = document.getElementById("map");
+
+      function atualizarVisibilidadeLabels() {
+        const zoom = map.getZoom();
+        if (zoom >= ZOOM_LABELS) {
+          mapContainer.classList.remove("zoom-baixo");
+        } else {
+          mapContainer.classList.add("zoom-baixo");
+        }
+      }
+
+      map.on("zoomend", atualizarVisibilidadeLabels);
+      atualizarVisibilidadeLabels();
 
       // --- Botão para abrir/fechar legenda ---
       const legendElement = document.getElementById("legend");
